@@ -1,0 +1,123 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
+const getRandomNumber = () => Math.floor(Math.random() * 10) + 1;
+const getRandomColor = () => (Math.random() < 0.5 ? "red" : "black");
+
+export default function MiniRouletteGame() {
+  const [wheelSpinning, setWheelSpinning] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [bet, setBet] = useState(0);
+  const [chosenNumber, setChosenNumber] = useState(1);
+  const [chosenColor, setChosenColor] = useState("");
+  const [lnAddress, setLnAddress] = useState("");
+  const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  const playGame = () => {
+    if (bet <= 0 || !lnAddress) return alert("Lütfen geçerli bahis ve LN adresi girin.");
+    if (bet > balance) return alert("Yetersiz bakiye");
+
+    setWheelSpinning(true);
+    setTimeout(() => {
+      const resultNumber = getRandomNumber();
+      const resultColor = getRandomColor();
+
+      let reward = 0;
+      if (resultNumber === chosenNumber) {
+        reward = bet * 2;
+      } else if (resultColor === chosenColor) {
+        reward = Math.floor(bet / 2);
+      }
+
+      setBalance((prev) => prev - bet + reward);
+      setResult({ number: resultNumber, color: resultColor, reward });
+      setHistory((h) => [
+        { number: resultNumber, color: resultColor, reward },
+        ...h.slice(0, 4),
+      ]);
+      setWheelSpinning(false);
+    }, 2000);
+  };
+
+  const addBalance = async () => {
+    if (!lnAddress) return alert("LN adresi gerekli");
+    // Burada backend'e istek atılarak QR kod/fatura oluşturulabilir
+    // Örnek olarak sabit 500 sats ekleniyor
+    setBalance((prev) => prev + 500);
+    alert("500 sats yüklendi (simüle)");
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-4">
+      <h1 className="text-3xl font-bold">Mini Roulette ⚡</h1>
+
+      <Card className="p-4 w-full max-w-md bg-gray-900 text-white">
+        <p>Bakiye: {balance} sats</p>
+        <input
+          type="text"
+          placeholder="sen@speedwallet.me"
+          value={lnAddress}
+          onChange={(e) => setLnAddress(e.target.value)}
+          className="w-full mt-2 p-2 rounded bg-gray-800"
+        />
+        <Button onClick={addBalance} className="mt-2 w-full">
+          Bakiye Yükle
+        </Button>
+      </Card>
+
+      <Card className="p-4 w-full max-w-md bg-gray-800 text-white">
+        <input
+          type="number"
+          placeholder="Bahis (sats)"
+          value={bet}
+          onChange={(e) => setBet(Number(e.target.value))}
+          className="w-full mb-2 p-2 rounded bg-gray-700"
+        />
+
+        <select
+          value={chosenNumber}
+          onChange={(e) => setChosenNumber(Number(e.target.value))}
+          className="w-full mb-2 p-2 rounded bg-gray-700"
+        >
+          {[...Array(10)].map((_, i) => (
+            <option key={i} value={i + 1}>{i + 1}</option>
+          ))}
+        </select>
+
+        <select
+          value={chosenColor}
+          onChange={(e) => setChosenColor(e.target.value)}
+          className="w-full mb-2 p-2 rounded bg-gray-700"
+        >
+          <option value="">Renk seç</option>
+          <option value="red">Kırmızı</option>
+          <option value="black">Siyah</option>
+        </select>
+
+        <Button onClick={playGame} className="w-full bg-green-600">
+          {wheelSpinning ? "Çark Dönüyor..." : "Oyna"}
+        </Button>
+
+        {result && (
+          <div className="mt-4 text-center">
+            <p>Kazanan: {result.number} - {result.color}</p>
+            <p>Kazanç: {result.reward} sats</p>
+          </div>
+        )}
+      </Card>
+
+      <div className="w-full max-w-md">
+        <h2 className="text-xl mt-4 mb-2">Sonuç Geçmişi</h2>
+        <ul className="bg-gray-800 p-2 rounded">
+          {history.map((r, idx) => (
+            <li key={idx}>
+              🎯 {r.number} - {r.color} → {r.reward} sats
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
